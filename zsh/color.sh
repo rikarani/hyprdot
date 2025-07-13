@@ -1,0 +1,22 @@
+# generated automatically when change wallpaper
+cursor="#D9C8AF"
+
+background="#302A2D"
+foreground="#FFF7E9"
+
+color0="#554F52"
+color1="#8F9991"
+color2="#B29975"
+color3="#A3B0C7"
+color4="#E9CBC3"
+color5="#E0ECF1"
+color6="#FFE9BF"
+color7="#F7ECD7"
+color8="#ADA596"
+color9="#8F9991"
+color10="#B29975"
+color11="#A3B0C7"
+color12="#E9CBC3"
+color13="#E0ECF1"
+color14="#FFE9BF"
+color15="#F7ECD7"

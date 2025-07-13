@@ -1,0 +1,192 @@
+# Path to your Oh My Zsh installation.
+export ZSH="$HOME/.oh-my-zsh"
+
+zstyle ':omz:update' mode auto      # update automatically without asking
+
+# Would you like to use another custom folder than $ZSH/custom?
+# ZSH_CUSTOM=/path/to/new-custom-folder
+
+# Which plugins would you like to load?
+# Standard plugins can be found in $ZSH/plugins/
+# Custom plugins may be added to $ZSH_CUSTOM/plugins/
+# Example format: plugins=(rails git textmate ruby lighthouse)
+# Add wisely, as too many plugins slow down shell startup.
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+
+source $ZSH/oh-my-zsh.sh
+
+# User configuration
+[[ -f "${HOME}/.config/zsh/color.sh" ]] && source "${HOME}/.config/zsh/color.sh"
+
+# Separator Powerline
+CURRENT_BG='NONE'
+SEGMENT_SEPARATOR=''
+
+GIT_BG='white'
+GIT_FG='black'
+
+ZSH_THEME_GIT_PROMPT_PREFIX="\ueba1 "
+ZSH_THEME_GIT_PROMPT_SUFFIX=""
+ZSH_THEME_GIT_PROMPT_DIRTY=" %F{red}✘%F{black}"
+ZSH_THEME_GIT_PROMPT_CLEAN=" %F{green}✔%F{black}"
+ZSH_THEME_GIT_PROMPT_ADDED=" %F{green}✚%F{black}"
+ZSH_THEME_GIT_PROMPT_MODIFIED=" %F{blue}✹%F{black}"
+ZSH_THEME_GIT_PROMPT_DELETED=" %F{red}✖%F{black}"
+ZSH_THEME_GIT_PROMPT_UNTRACKED=" %F{yellow}✭%F{black}"
+ZSH_THEME_GIT_PROMPT_RENAMED=" ➜"
+ZSH_THEME_GIT_PROMPT_UNMERGED=" ═"
+ZSH_THEME_GIT_PROMPT_AHEAD=" ⬆"
+ZSH_THEME_GIT_PROMPT_BEHIND=" ⬇"
+ZSH_THEME_GIT_PROMPT_DIVERGED=" ⬍"
+
+prompt_segment() {
+  local bg fg
+  [[ -n $1 ]] && bg="%K{$1}" || bg="%k"
+  [[ -n $2 ]] && fg="%F{$2}" || fg="%f"
+  if [[ $CURRENT_BG != 'NONE' && $1 != $CURRENT_BG ]]; then
+    echo -n " %{$bg%F{$CURRENT_BG}%}$SEGMENT_SEPARATOR%{$fg%} "
+  else
+    echo -n "%{$bg%}%{$fg%} "
+  fi
+  CURRENT_BG=$1
+  [[ -n $3 ]] && echo -n $3
+}
+
+prompt_end() {
+  if [[ -n $CURRENT_BG ]]; then
+    echo -n " %{%k%F{$CURRENT_BG}%}$SEGMENT_SEPARATOR "
+  else
+    echo -n "%{%k%} "
+  fi
+  echo -n "%{%f%}"
+  CURRENT_BG=''
+}
+
+is_git_repo() {
+  command git rev-parse --git-dir &>/dev/null
+}
+
+diff_with_upstream() {
+  if ! is_git_repo; then
+    return
+  fi
+
+  local output
+  local info=$(command git status --porcelain --branch | head -n 1)
+
+  if [[ $info =~ "ahead ([0-9]+)" ]]; then
+    output+="\uf431 $match[1] "
+  fi
+
+  if [[ $info =~ "behind ([0-9]+)" ]]; then
+    output+="\uf433 $match[1] "
+  fi
+
+  if [[ -n $output ]]; then
+    prompt_segment "#d4a26a" "$foreground" "${output% }"
+  else
+    prompt_segment "#4caf50" "000000" "\uf42e"
+  fi
+}
+
+counter() {
+  if ! is_git_repo; then
+    return
+  fi
+
+  # ?? nama file => untracked
+  #  M nama file => modified
+  # A nama file => added
+  # R nama file -> new nama => renamed
+  # D nama file => deleted
+
+  local -i untracked=0 added=0 modified_staged=0 modified_unstaged=0 renamed=0 deleted=0
+  
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+
+    if [[ $line == "?? "* ]]; then
+      ((untracked++))
+    fi
+
+    if [[ $line[1] == "A" ]]; then
+      ((added++))
+    fi
+
+    if [[ $line[1] == "M" ]]; then
+      ((modified_staged++))
+    fi
+
+    if [[ $line[2] == "M" ]]; then
+      ((modified_unstaged++))
+    fi
+
+    if [[ $line[1] == "R" ]]; then
+      ((renamed++))
+    fi
+
+    if [[ $line[1] == "D" ]]; then
+      ((deleted++))
+    fi
+  done < <(command git status --short)
+
+  local output
+
+  if [[ $untracked -gt 0 ]]; then
+    output+="?$untracked "
+  fi
+
+  if [[ $added -gt 0 ]]; then
+    output+="+$added "
+  fi
+
+  if [[ $modified_staged -gt 0 ]]; then
+    output+="M$modified_staged "
+  fi
+
+  if [[ $modified_unstaged -gt 0 ]]; then
+    output+="!$modified_unstaged "
+  fi
+
+  if [[ $renamed -gt 0 ]]; then
+    output+="R$renamed "
+  fi
+
+  if [[ $deleted -gt 0 ]]; then
+    output+="-$deleted "
+  fi
+
+  if [[ -z $output ]]; then
+    return
+  fi
+
+  prompt_segment "#342E30" "#f5f1f2" "${output% }"
+}
+
+prompt_git() {
+  if ! is_git_repo; then
+    return
+  fi
+
+  prompt_segment "$GIT_BG" "$GIT_FG" "$ZSH_THEME_GIT_PROMPT_PREFIX $(current_branch)"
+}
+
+build_prompt() {
+  prompt_segment "$color1" "$foreground" "%n@%m"
+  prompt_segment "$color8" "$foreground" "%~"
+  prompt_git
+  diff_with_upstream
+  counter
+
+  prompt_end
+}
+
+PROMPT='$(build_prompt)'
+
+# Preset
+USE_POWERLINE="true"
+HAS_WIDECHARS="false"
+
+if [[ "$(ps -p $PPID -o comm=)" == "kitty" ]]; then
+  cd ~/Desktop
+fi
